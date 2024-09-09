@@ -1,6 +1,8 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = "mongodb+srv://sosadarwin2002:1CgwHY0iO1jO9Cil@telegrambot.u8jca.mongodb.net/TelegramBot?retryWrites=true&w=majority&appName=TelegramBot";
 
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = "mongodb+srv://sosadarwin2002:1CgwHY0iO1jO9Cil@telegrambot.u8jca.mongodb.net/?retryWrites=true&w=majority&appName=TelegramBot";
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -11,10 +13,13 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    await client.db("TelegramBot").command({ ping: 1 });
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
+    // Ensures that the client will close when you finish/error
     await client.close();
   }
 }

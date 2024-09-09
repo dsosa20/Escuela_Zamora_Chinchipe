@@ -1,6 +1,6 @@
 [build]
   publish = "public"  
-  functions = "api"   
+  functions = "api"
 
 [[redirects]]
   from = "/*"
@@ -9,12 +9,11 @@
 
 [functions]
   node_bundler = "esbuild"
-  
+
   # Timeout extendido para las funciones
-  directory = "api"
-  included_files = ["api/*.js"]  
-  external_node_modules = ["mongodb", "axios"]  # Incluye módulos externos que utilizas
-  timeout = 26  # Tiempo máximo de espera para funciones (máximo 26 segundos)
+  [functions.timeout]
+  timeout = 26  
+  external_node_modules = ["mongodb", "axios"]  
 
 [[headers]]
   for = "/*"
