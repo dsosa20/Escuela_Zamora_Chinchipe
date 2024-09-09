@@ -1,6 +1,6 @@
 [build]
-  publish = "public"      
-  functions = "api"       
+  publish = "public"  
+  functions = "api"   
 
 [[redirects]]
   from = "/*"
@@ -9,3 +9,17 @@
 
 [functions]
   node_bundler = "esbuild"   
+
+  # Timeout y tamaño máximo para funciones
+  directory = "api"          
+  included_files = ["api/*.js"]  
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/api/*"   
+  [headers.values]
+    Content-Type = "application/json"
