@@ -8,11 +8,13 @@
   status = 200
 
 [functions]
-  node_bundler = "esbuild"   
-
-  # Timeout y tamaño máximo para funciones
-  directory = "api"          
+  node_bundler = "esbuild"
+  
+  # Timeout extendido para las funciones
+  directory = "api"
   included_files = ["api/*.js"]  
+  external_node_modules = ["mongodb", "axios"]  # Incluye módulos externos que utilizas
+  timeout = 26  # Tiempo máximo de espera para funciones (máximo 26 segundos)
 
 [[headers]]
   for = "/*"
