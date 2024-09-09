@@ -28,9 +28,12 @@ exports.handler = async function(event, context) {
       body: JSON.stringify(messages),
     };
   } catch (error) {
+    console.error('Error al obtener los mensajes:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Error al obtener los mensajes" }),
     };
+  } finally {
+    await client.close();
   }
 };
