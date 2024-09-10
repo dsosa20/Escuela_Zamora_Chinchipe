@@ -1,39 +1,88 @@
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
 const { MongoClient } = require('mongodb');
+const axios = require('axios');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Verificación de la variable de entorno para el bot de Telegram
+const botToken = process.env.TELEGRAM_BOT_TOKEN;
+if (!botToken) {
+  throw new Error("Falta la variable de entorno TELEGRAM_BOT_TOKEN");
+}
 
 const mongoUri = process.env.MONGODB_URI;
 const client = new MongoClient(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
 const dbName = 'TelegramBot';
-const collectionName = 'messages';
+let db;
 
-async function connectToMongo() {
-  if (!client.isConnected()) {
-    await client.connect();
-    console.log('Conectado a MongoDB');
+// Conectar a MongoDB al iniciar la aplicación y mantener la conexión abierta
+client.connect().then(() => {
+  db = client.db(dbName);
+  console.log('Conectado a MongoDB');
+}).catch(err => {
+  console.error('Error al conectar a MongoDB:', err);
+  process.exit(1);
+});
+
+app.use(bodyParser.json());
+
+// Ruta para manejar los webhooks de Telegram
+app.post('/webhook', async (req, res) => {
+  const message = req.body.message;
+
+  if (message && message.photo) {
+    try {
+      const file_id = message.photo[message.photo.length - 1].file_id;
+      const fileUrl = await getTelegramFileUrl(file_id);
+      const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+
+      // Guardar la URL de la imagen en MongoDB
+      const collection = db.collection('messages');
+      await collection.insertOne({ ...message, fileUrl });
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error al recibir la foto:', error);
+      res.status(500).send('Error al recibir la foto');
+    }
+  } else if (message && message.text) {
+    try {
+      const collection = db.collection('messages');
+      await collection.insertOne(message);
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error al guardar el mensaje de texto:', error);
+      res.status(500).send('Error al guardar el mensaje de texto');
+    }
+  } else {
+    res.sendStatus(400); // Mensaje inválido
   }
+});
+
+// Función para obtener la URL del archivo de Telegram
+async function getTelegramFileUrl(file_id) {
+  const fileResponse = await axios.get(`https://api.telegram.org/bot${botToken}/getFile?file_id=${file_id}`);
+  const filePath = fileResponse.data.result.file_path;
+  return `https://api.telegram.org/file/bot${botToken}/${filePath}`;
 }
 
-async function getMessages() {
-  const db = client.db(dbName);
-  const collection = db.collection(collectionName);
-  return await collection.find().toArray();
-}
+// Servidor escuchando
+app.listen(port, () => {
+  console.log(`Servidor escuchando en el puerto ${port}`);
+});
 
-exports.handler = async function(event, context) {
-  await connectToMongo();
+process.on('SIGINT', async () => {
+  console.log('Cerrando conexión con MongoDB...');
+  await client.close();
+  process.exit();
+});
 
-  try {
-    const messages = await getMessages();
-    return {
-      statusCode: 200,
-      body: JSON.stringify(messages),
-    };
-  } catch (error) {
-    console.error('Error al obtener los mensajes:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Error al obtener los mensajes" }),
-    };
-  } finally {
-    await client.close();
-  }
-};
+process.on('SIGTERM', async () => {
+  console.log('Cerrando conexión con MongoDB...');
+  await client.close();
+  process.exit();
+});
