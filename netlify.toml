@@ -1,27 +1,37 @@
-# Configuración de construcción
 [build]
-  publish = "public"  # Carpeta donde están los archivos estáticos
-  functions = "api"   # Carpeta donde están las funciones serverless
+  publish = "public"
+  functions = "api"
 
-# Redireccionamiento
 [[redirects]]
+  # Redirige todas las solicitudes a /index.html para rutas que no sean API o webhook de Telegram
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
-# Configuración de funciones
-[functions]
-  node_bundler = "esbuild"  # Esbuild para empaquetar las funciones de Node.js
-  external_node_modules = ["mongodb", "axios"]  # Módulos externos necesarios
-  timeout = 26  # Timeout extendido para evitar que las funciones fallen en procesos largos
+[[redirects]]
+  # No redireccionar la API
+  from = "/api/*"
+  to = "/api/:splat"
+  status = 200
 
-# Configuración de cabeceras (CORS y otros headers)
+[[redirects]]
+  # No redireccionar el webhook de Telegram
+  from = "/webhook/*"
+  to = "/webhook/:splat"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"  # Permitir solicitudes desde cualquier origen (CORS)
+    Access-Control-Allow-Origin = "*"
 
 [[headers]]
-  for = "/api/*"  # Para todas las rutas que comienzan con /api/
+  for = "/api/*"
   [headers.values]
-    Content-Type = "application/json"  # Asegurarse de que el Content-Type sea JSON
+    Content-Type = "application/json"
+
+[[headers]]
+  for = "/webhook/*"
+  [headers.values]
+    Content-Type = "application/json"

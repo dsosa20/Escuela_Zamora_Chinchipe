@@ -1,25 +1,21 @@
-const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const { GridFsStorage } = require('multer-gridfs-storage');
 const Grid = require('gridfs-stream');
-const path = require('path');
 const crypto = require('crypto');
+const path = require('path');
+const stream = require('stream');
 
-const app = express();
+const mongoURI = process.env.MONGODB_URI;
 
-// Conexión a MongoDB
-const mongoURI = "mongodb+srv://sosadarwin2002:1CgwHY0iO1jO9Cil@telegrambot.u8jca.mongodb.net/TelegramBot?retryWrites=true&w=majority&appName=TelegramBot";
-const conn = mongoose.createConnection(mongoURI); // Eliminadas las opciones obsoletas
-
-// Inicializar GridFS
 let gfs;
+const conn = mongoose.createConnection(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
+
 conn.once('open', () => {
   gfs = Grid(conn.db, mongoose.mongo);
   gfs.collection('uploads');
 });
 
-// Configuración de almacenamiento
 const storage = new GridFsStorage({
   url: mongoURI,
   file: (req, file) => {
@@ -39,13 +35,28 @@ const storage = new GridFsStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage }).single('file');
 
-// Ruta para subir imágenes
-app.post('/upload', upload.single('file'), (req, res) => {
-  res.json({ file: req.file });
-});
+exports.handler = async (event) => {
+  return new Promise((resolve, reject) => {
+    if (event.httpMethod !== 'POST') {
+      return resolve({ statusCode: 405, body: 'Method Not Allowed' });
+    }
 
-// Servidor
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
+    // Create a stream to handle the file upload
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(Buffer.from(event.body, 'base64'));
+
+    // Multer upload middleware
+    upload({ file: bufferStream }, null, (err) => {
+      if (err) {
+        console.error('Error uploading file:', err);
+        return resolve({ statusCode: 500, body: 'Error uploading file' });
+      }
+      resolve({
+        statusCode: 200,
+        body: JSON.stringify({ message: 'File uploaded successfully' }),
+      });
+    });
+  });
+};
